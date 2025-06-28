@@ -7,7 +7,7 @@
       </router-link>
     </div>
 
-    <!-- Filter -->
+
     <div class="mb-4">
       <select v-model="statusFilter" @change="fetchTasks" class="form-input max-w-xs">
         <option value="">All Tasks</option>
@@ -17,7 +17,6 @@
       </select>
     </div>
 
-    <!-- Tasks Table -->
     <div class="bg-white shadow-md rounded-lg overflow-hidden">
       <table class="min-w-full divide-y divide-gray-200">
         <thead class="bg-gray-50">
@@ -58,7 +57,7 @@
                 Edit
               </router-link>
               <button
-                @click="deleteTask(task.id)"
+                @click="confirmDeleteTask(task.id)"
                 class="text-red-600 hover:text-red-900"
               >
                 Delete
@@ -105,17 +104,46 @@ export default {
       this.loading = false
     },
 
-    async deleteTask(id) {
-      if (confirm('Are you sure you want to delete this task?')) {
-        try {
-          await axios.delete(`/api/tasks/${id}`)
-          const notificationStore = useNotificationStore()
-          notificationStore.showSuccess('Task deleted successfully')
-          this.fetchTasks()
-        } catch (error) {
-          const notificationStore = useNotificationStore()
-          notificationStore.showError('Failed to delete task')
+    async confirmDeleteTask(id) {
+      try {
+        const { default: Swal } = await import('sweetalert2')
+
+        const result = await Swal.fire({
+          title: 'Are you sure?',
+          text: "You won't be able to recover this record!",
+          icon: 'warning',
+          showCancelButton: true,
+          focusConfirm: false,
+          confirmButtonText: 'Yes, delete it!',
+          cancelButtonText: 'Cancel',
+          customClass: {
+            confirmButton: 'btn btn-primary mr-3',
+            cancelButton: 'btn btn-secondary'
+          },
+          showClass: {
+            popup: 'swal2-noanimation',
+            backdrop: 'swal2-noanimation'
+          },
+          buttonsStyling: false
+        })
+
+        if (result.isConfirmed) {
+          await this.deleteTask(id)
         }
+      } catch (error) {
+        console.error('Error showing confirmation dialog:', error)
+      }
+    },
+
+    async deleteTask(id) {
+      try {
+        await axios.delete(`/api/tasks/${id}`)
+        const notificationStore = useNotificationStore()
+        notificationStore.showSuccess('Task deleted successfully')
+        this.fetchTasks()
+      } catch (error) {
+        const notificationStore = useNotificationStore()
+        notificationStore.showError('Failed to delete task')
       }
     },
 
